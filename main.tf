@@ -75,6 +75,21 @@ resource "docker_container" "k3s_server" {
   networks_advanced {
     name = local.network_name
   }
+  
+  ports {
+    internal = 6443
+    external = 6443
+  }
+  
+  ports {
+    internal = 80
+    external = 80
+  }
+
+  ports {
+    internal = 443
+    external = 443
+  }
 
   env = [
     "K3S_TOKEN=${random_password.k3s_token.result}",
@@ -142,9 +157,11 @@ resource "docker_container" "k3s_agent" {
     name = local.network_name
   }
 
+
   env = [
     "K3S_TOKEN=${random_password.k3s_token.result}",
-    "K3S_URL=https://${docker_container.k3s_server.ip_address}:6443",
+    #"K3S_URL=https://${docker_container.k3s_server.ip_address}:6443",
+    "K3S_URL=https://127.0.0.1:6443",
   ]
 
   mounts {
@@ -205,7 +222,7 @@ resource "null_resource" "wait_for_cluster" {
     command     = var.wait_for_cluster_cmd
     interpreter = var.wait_for_cluster_interpreter
     environment = {
-      ENDPOINT = format("https://%s:6443", docker_container.k3s_server.ip_address)
+      ENDPOINT = format("https://%s:6443", "127.0.0.1") #docker_container.k3s_server.ip_address)
     }
   }
 }
@@ -215,7 +232,7 @@ data "external" "kubeconfig" {
 
   query = {
     container_name       = docker_container.k3s_server.name
-    container_ip_address = docker_container.k3s_server.ip_address
+    container_ip_address = "127.0.0.1" #docker_container.k3s_server.ip_address
   }
 
   depends_on = [
